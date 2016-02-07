@@ -15,7 +15,13 @@ class CacheService
 
     public function __construct($host, $port, $prefix)
     {
-        $this->redis = new Predis\Client("tcp://$host:$port/");
+        try {
+            echo "__construct cache";
+            $this->redis = new Predis\Client("tcp://$host:$port/");
+                    
+        } catch (Exception $e) {
+            
+        }        
     }
 
     public function get($key)
@@ -41,10 +47,13 @@ class CacheService
 
     public function set($key, $value)
     {
-        //$this->redis->set($key,serialize($value));
-
-        $this->redis->set($key,serialize($value));
-        $this->redis->expire($key,60);
+        try {
+            $this->redis->set($key,serialize($value));
+            $this->redis->expire($key,60);
+        } catch (Exception $e) {
+            echo 'exception';
+            return 'failover';
+        }
     }
 
     public function del($key)
@@ -53,8 +62,5 @@ class CacheService
         foreach ($data as $keyy => $value) {
             $this->redis->del($value);
         }   
-
-
-        
     }
 }

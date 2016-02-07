@@ -52,24 +52,11 @@ class CustomersController extends Controller
         $cacheService = $this->get('cache_service');
 
         foreach ($customers as $customer) {
-            //$data = $cacheService->get('customer_' . $customer["_id"]);
-            //echo ($customer->name);
-            //$key  = 'customer_' . $customer->name;
-
-            //$data = $cacheService->get($key);
-
-            //if($data === false){
-                //do slowly query
                 $database->customers->insert($customer);
-                //var_dump($cus->_id);
-                //save in cache server
-                $cacheService->set($customer->_id, $customer);
-                //$cacheService->set('customer_' . $customer["_id"] , $custumer);
-            //}else{
-                //save in log => customer already created
-            }
+                //save in cache  
+                $cacheService->set('customer_' . $customer->_id, $customer);
+        }
 
-        
 
         return new JsonResponse(['status' => 'Customers successfully created']);
     }
