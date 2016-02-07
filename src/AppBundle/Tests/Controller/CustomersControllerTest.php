@@ -33,6 +33,6 @@ class CustomersControllerTest extends WebTestCase
         
         $this->client->request('DELETE', '/customers/');
 
-        $this->assertTrue($this->client->getResponse()->isSuccessful());
+        $this->assertTrue($this->client->getResponse()->isSuccessful()); 
     }
 }

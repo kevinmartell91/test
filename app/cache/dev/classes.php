@@ -144,6 +144,12 @@ $this->saveHandler->setName($name);
 }
 public function regenerate($destroy = false, $lifetime = null)
 {
+if (PHP_VERSION_ID >= 50400 && \PHP_SESSION_ACTIVE !== session_status()) {
+return false;
+}
+if (PHP_VERSION_ID < 50400 &&''=== session_id()) {
+return false;
+}
 if (null !== $lifetime) {
 ini_set('session.cookie_lifetime', $lifetime);
 }
@@ -317,8 +323,8 @@ throw new \InvalidArgumentException(sprintf('Invalid argument $savePath \'%s\'',
 }
 $baseDir = ltrim(strrchr($savePath,';'),';');
 }
-if ($baseDir && !is_dir($baseDir)) {
-mkdir($baseDir, 0777, true);
+if ($baseDir && !is_dir($baseDir) && !@mkdir($baseDir, 0777, true) && !is_dir($baseDir)) {
+throw new \RuntimeException(sprintf('Session Storage was not able to create directory "%s"', $baseDir));
 }
 ini_set('session.save_path', $savePath);
 ini_set('session.save_handler','files');
@@ -338,7 +344,7 @@ return $this->saveHandlerName;
 }
 public function isSessionHandlerInterface()
 {
-return ($this instanceof \SessionHandlerInterface);
+return $this instanceof \SessionHandlerInterface;
 }
 public function isWrapper()
 {
@@ -2135,15 +2141,17 @@ $event = new Event();
 }
 $event->setDispatcher($this);
 $event->setName($eventName);
-if (!isset($this->listeners[$eventName])) {
-return $event;
+if ($listeners = $this->getListeners($eventName)) {
+$this->doDispatch($listeners, $eventName, $event);
 }
-$this->doDispatch($this->getListeners($eventName), $eventName, $event);
 return $event;
 }
 public function getListeners($eventName = null)
 {
 if (null !== $eventName) {
+if (!isset($this->listeners[$eventName])) {
+return array();
+}
 if (!isset($this->sorted[$eventName])) {
 $this->sortListeners($eventName);
 }
@@ -2214,10 +2222,8 @@ break;
 private function sortListeners($eventName)
 {
 $this->sorted[$eventName] = array();
-if (isset($this->listeners[$eventName])) {
 krsort($this->listeners[$eventName]);
 $this->sorted[$eventName] = call_user_func_array('array_merge', $this->listeners[$eventName]);
-}
 }
 }
 }
@@ -2295,11 +2301,6 @@ $this->listenerIds[$eventName][] = array($serviceId, $listener[0], isset($listen
 }
 }
 }
-}
-public function dispatch($eventName, Event $event = null)
-{
-$this->lazyLoad($eventName);
-return parent::dispatch($eventName, $event);
 }
 public function getContainer()
 {
@@ -2881,15 +2882,15 @@ return $service;
 throw new \LogicException(sprintf('Unable to parse the controller name "%s".', $controller));
 }
 }
-list($class, $method) = explode('::', $controller, 2);
-if (!class_exists($class)) {
-throw new \InvalidArgumentException(sprintf('Class "%s" does not exist.', $class));
+return parent::createController($controller);
 }
-$controller = $this->instantiateController($class);
+protected function instantiateController($class)
+{
+$controller = parent::instantiateController($class);
 if ($controller instanceof ContainerAwareInterface) {
 $controller->setContainer($this->container);
 }
-return array($controller, $method);
+return $controller;
 }
 }
 }
