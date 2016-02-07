@@ -20,29 +20,41 @@ class CacheService
 
     public function get($key)
     {
-         try {
-             //return  json_encode(($this->redis->lrange($key,0,-1)));
-             return  (unserialize($this->redis->lrange($key,0,-1)));
+        try {
+            echo "\n =============   retrive data from cacheServer    =========== \n\n";
+            //return  json_encode(($this->redis->lrange($key,0,-1)));
+            //return  (($this->redis->keys($key . '_??')));
+            $data = $this->redis->keys($key . '_*');
+            $arrayData =  array();
+            foreach ($data as $key => $value) {
+                $des = unserialize($this->redis->get($value));
+                //var_dump( $des);
+                array_push($arrayData, $des);
+            }   
+            return $arrayData;
 
-         } catch (Exception $e) {
+        } catch (Exception $e) {
             echo 'exception';
-             return 'failover';
-         }
+            return 'failover';
+        }
     }
 
     public function set($key, $value)
     {
         //$this->redis->set($key,serialize($value));
 
-        $this->redis->rpush($key,serialize($value));
+        $this->redis->set($key,serialize($value));
         $this->redis->expire($key,60);
     }
 
     public function del($key)
     {
-        while ($this->redis->llen('customers')) {
-            $this->redis->del($key);
-        }
+        $data = $this->redis->keys($key . '_*');
+        foreach ($data as $keyy => $value) {
+            $this->redis->del($value);
+        }   
+
+
         
     }
 }

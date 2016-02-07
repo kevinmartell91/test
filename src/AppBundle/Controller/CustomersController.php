@@ -10,9 +10,6 @@ use Sensio\Bundle\FrameworkExtraBundle\Configuration\Method;
 use AppBundle\Service;
 
 
-use Predis;
-
-
 class CustomersController extends Controller
 {
 
@@ -23,24 +20,19 @@ class CustomersController extends Controller
     public function getAction()
     {
         $cacheService = $this->get('cache_service');
-        
-
-        $customers = $cacheService->get('customers');
+        $customers = $cacheService->get('customer');
 
         if (empty($customers) || $customers === 'failover') {
-            echo "retrive data from database//////////////////////";
+            echo "\n =============   retrive data from database    =========== \n\n";
             $database = $this->get('database_service')->getDatabase();
             $customers = $database->customers->find();
             $customers = iterator_to_array($customers,true);
             
-            //save on  
+            //save in cache  
             foreach ($customers as $customer) {
-                
-                //$cacheService->set($customer["_id"],serialize($customer));
-                $cacheService->set('customers',$customer);
+                $cacheService->set('customer_' . $customer["_id"] , $customer);
             }
         }
-
         return new JsonResponse($customers);
     }
 
@@ -60,18 +52,24 @@ class CustomersController extends Controller
         $cacheService = $this->get('cache_service');
 
         foreach ($customers as $customer) {
-            $data = $cacheService->get($customer["_id"]);
-            if(data === false){
+            //$data = $cacheService->get('customer_' . $customer["_id"]);
+            //echo ($customer->name);
+            //$key  = 'customer_' . $customer->name;
+
+            //$data = $cacheService->get($key);
+
+            //if($data === false){
                 //do slowly query
                 $database->customers->insert($customer);
+                //var_dump($cus->_id);
                 //save in cache server
-                //$cacheService->set($customer["_id"],serialize($customer));
-                $cacheService->set('customers',$custumer);
-            }else{
+                $cacheService->set($customer->_id, $customer);
+                //$cacheService->set('customer_' . $customer["_id"] , $custumer);
+            //}else{
                 //save in log => customer already created
             }
 
-        }
+        
 
         return new JsonResponse(['status' => 'Customers successfully created']);
     }
@@ -85,8 +83,8 @@ class CustomersController extends Controller
         $database = $this->get('database_service')->getDatabase();
         $database->customers->drop();
 
-        $cacheService->$this->get('cache_service');
-        $cacheService->del('customers');
+        $cacheService = $this->get('cache_service');
+        $cacheService->del('customer');
 
         return new JsonResponse(['status' => 'Customers successfully deleted']);
     }
