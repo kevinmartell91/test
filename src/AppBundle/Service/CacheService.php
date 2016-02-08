@@ -16,11 +16,12 @@ class CacheService
     public function __construct($host, $port, $prefix)
     {
         try {
-            echo "__construct cache";
+            
             $this->redis = new Predis\Client("tcp://$host:$port/");
                     
         } catch (Exception $e) {
-            
+            //save in log
+            $this->redis = null;
         }        
     }
 
@@ -28,39 +29,75 @@ class CacheService
     {
         try {
             echo "\n =============   retrive data from cacheServer    =========== \n\n";
-            //return  json_encode(($this->redis->lrange($key,0,-1)));
-            //return  (($this->redis->keys($key . '_??')));
+
             $data = $this->redis->keys($key . '_*');
             $arrayData =  array();
             foreach ($data as $key => $value) {
-                $des = unserialize($this->redis->get($value));
-                //var_dump( $des);
-                array_push($arrayData, $des);
+                $customer = unserialize($this->redis->get($value));
+                array_push($arrayData, $customer);
             }   
             return $arrayData;
 
         } catch (Exception $e) {
-            echo 'exception';
-            return 'failover';
+            //save in log
         }
     }
 
     public function set($key, $value)
     {
         try {
+           
             $this->redis->set($key,serialize($value));
-            $this->redis->expire($key,60);
+            $this->redis->expire($key,5);
+
         } catch (Exception $e) {
-            echo 'exception';
-            return 'failover';
+            //save in log 
         }
     }
 
     public function del($key)
     {
-        $data = $this->redis->keys($key . '_*');
-        foreach ($data as $keyy => $value) {
-            $this->redis->del($value);
-        }   
+        try {
+            
+            $data = $this->redis->keys($key . '_*');
+            
+            foreach ($data as $keyy => $value) {
+                $this->redis->del($value);
+            }
+
+            if($this->redis->exists('customers_count')) $this->redis->del('customers_count') ;  
+
+        } catch (Exception $e) {
+            //save in log       
+        } 
     }
+
+    public function get_num_Customers($key)
+    {
+        try {
+            if($this->redis->exists($key)) {
+                return $this->redis->get($key);
+            }else{
+                return  0;
+            }
+        } catch (Exception $e) {
+            //save in log
+        }
+    }
+    public function incr_count_cust($key){
+
+        try {
+            if($this->redis->exists($key)) {
+                 $this->redis->incr($key);  
+            }else{
+                $this->redis->set($key,1);
+                $this->redis->expire($key,3600);
+            }
+            
+        } catch (Exception $e) {
+            //save in log
+        }
+
+    }
+
 }
