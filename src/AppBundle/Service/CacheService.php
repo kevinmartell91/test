@@ -15,87 +15,119 @@ class CacheService
 
     public function __construct($host, $port, $prefix)
     {
-        try {
+
+        $url = "tcp://$host:$port/";
+
+        if (filter_var($host,FILTER_VALIDATE_IP) && is_int($port) ){
             
-            $this->redis = new Predis\Client("tcp://$host:$port/");
-                    
-        } catch (Exception $e) {
-            //save in log
-            $this->redis = null;
-        }        
+            $this->redis = new Predis\Client($url);
+            
+        } 
+        
     }
 
     public function get($key)
     {
-        try {
-            echo "\n =============   retrive data from cacheServer    =========== \n\n";
+        //echo "\n\n =============   retrive data from cacheServer    =========== \n\n";
 
-            $data = $this->redis->keys($key . '_*');
+        if($this->redis !== null){
+
+            $data_keys = $this->redis->keys($key . '*');
+            
             $arrayData =  array();
-            foreach ($data as $key => $value) {
-                $customer = unserialize($this->redis->get($value));
-                array_push($arrayData, $customer);
+            
+            foreach ($data_keys as $key => $value) {
+
+                $data = unserialize($this->redis->get($value));
+                
+                if($data !== null || empty($data))
+
+                    array_push($arrayData, $data);
+
             }   
+            
             return $arrayData;
 
-        } catch (Exception $e) {
-            //save in log
         }
+
+        return null;
+
     }
 
     public function set($key, $value)
     {
-        try {
-           
-            $this->redis->set($key,serialize($value));
-            $this->redis->expire($key,5);
+        if( $this->redis !==null){
 
-        } catch (Exception $e) {
-            //save in log 
+            $this->redis->set($key,serialize($value));
+
+            $this->redis->expire($key,60);
+
+            return true;
         }
+
+        return false;
+
     }
 
     public function del($key)
     {
-        try {
-            
+        if($this->redis !== null){
+
             $data = $this->redis->keys($key . '_*');
             
-            foreach ($data as $keyy => $value) {
-                $this->redis->del($value);
+            if($data !== null || empty($data) ){
+
+                foreach ($data as $_key => $value) {
+
+                    $this->redis->del($value);
+
+                }
+
             }
 
-            if($this->redis->exists('customers_count')) $this->redis->del('customers_count') ;  
+            if($this->redis->exists('customers')) 
 
-        } catch (Exception $e) {
-            //save in log       
-        } 
-    }
+                $this->redis->del('customers') ; 
 
-    public function get_num_Customers($key)
-    {
-        try {
-            if($this->redis->exists($key)) {
-                return $this->redis->get($key);
-            }else{
-                return  0;
-            }
-        } catch (Exception $e) {
-            //save in log
+            return true;
+
         }
-    }
-    public function incr_count_cust($key){
 
-        try {
+        return false;
+
+    }
+
+    public function get_count($key)
+    {
+        
+        if($this->redis !==null){
+
             if($this->redis->exists($key)) {
-                 $this->redis->incr($key);  
+
+                return $this->redis->get($key);
+            }
+         
+        }
+
+        return 0;
+
+    }
+
+    public function incr_count($key)
+    {
+
+        if($this->redis !==null){
+
+            if($this->redis->exists($key)) {
+
+                 $this->redis->incr($key);
+
             }else{
+
                 $this->redis->set($key,1);
+
                 $this->redis->expire($key,3600);
             }
-            
-        } catch (Exception $e) {
-            //save in log
         }
 
     }

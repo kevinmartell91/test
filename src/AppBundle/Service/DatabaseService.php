@@ -11,16 +11,22 @@ class DatabaseService
 
     public function __construct($host, $port, $database)
     {
-        $mongoClient = new MongoClient("mongodb://$host:$port/");
 
-        $this->setDatabase(
-            $mongoClient->selectDB($database)
-        );
+        $connectionString = "mongodb://$host:$port/";
+        
+        if (filter_var($host,FILTER_VALIDATE_IP) && is_int($port) ){
+            
+            $mongoClient = new MongoClient($connectionString);
+            
+            $this->setDatabase($mongoClient->selectDB($database));
+            
+        }
+                    
     }
 
     public function setDatabase(MongoDB $database)
     {
-        $this->database = $database;
+        $this->database = $database; 
     }
 
     public function getDatabase()

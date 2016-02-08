@@ -20,32 +20,55 @@ class CustomersController extends Controller
     public function getAction()
     {
         $cacheService = $this->get('cache_service');
+        
+        $customers = null;
 
-        if($cacheService->redis !== null){
-            //get all customer form cacheServer
-            $customers = $cacheService->get('customer');
+        if($cacheService !== null){
 
-            //echo "left in cache : " . count($customers) . "   ---  totalCount :" .  $cacheService->get_num_customers('customers_count') ;
-            if(count($customers) < $cacheService->get_num_customers('customers_count')){
-                //force to hit datadb since cacheServer has different number of customers than stored in database.
-                $customers = null;
-            }
-        }
+            if($cacheService->redis !== null){
+                //get all customer from cacheServer
+                $customers = $cacheService->get('customer_');
 
-        if (empty($customers)){
-            echo "\n =============   retrive data from database    =========== \n\n";
-
-            $database = $this->get('database_service')->getDatabase();
-            $customers = $database->customers->find();
-            $customers = iterator_to_array($customers,true);
-            
-            if($cacheService->redis !== null){  
-                //save in cache  
-                foreach ($customers as $customer) {
-                    $cacheService->set('customer_' . $customer["_id"] , $customer);
+                if($customers !== null || empty($customers)){
+                    //echo "left in cache : " . count($customers) . "   ---  totalCount :" .  $cacheService->get_count('customers') ;
+                    if(count($customers) < $cacheService->get_count('customers')){
+                        //force to hit database since cacheServer has different number of customers than stored in database.
+                        $customers = null;
+                    }
                 }
             }
-        }
+
+        } 
+
+        if ( empty($customers) || $customers === null ){
+            //echo "\n\n =============   retrive data from database    =========== \n\n";
+            
+            $database = $this->get('database_service')->getDatabase();
+
+            if($database !== null){
+
+                $customers = $database->customers->find();
+
+                if($customers !== null || empty($customers)){
+
+                    $customers = iterator_to_array($customers,true);
+                    
+                    if($cacheService !== null){
+
+                        if($cacheService->redis !== null){  
+                            //save in cache  
+                            foreach ($customers as $customer) {
+
+                                $cacheService->set('customer_' . $customer["_id"] , $customer);
+                                
+                            }
+                        }     
+                    }    
+
+                } 
+            }
+        } 
+
         return new JsonResponse($customers);
     }
 
@@ -56,25 +79,40 @@ class CustomersController extends Controller
     public function postAction(Request $request)
     {
         $database = $this->get('database_service')->getDatabase();
-        $customers = json_decode($request->getContent());
-        $cacheService = $this->get('cache_service');
+        
+        if($database !== null){
 
-        if (empty($customers)) {
-            return new JsonResponse(['status' => 'No donuts for you'], 400);
-        }
+            $customers = json_decode($request->getContent());
 
-        foreach ($customers as $customer) {
+            if (empty($customers)) {
 
-            $database->customers->insert($customer);
+                return new JsonResponse(['status' => 'No donuts for you'], 400);
 
-            if($cacheService->redis !== null){
-                //save in cache  
-                $cacheService->set('customer_' . $customer->_id, $customer);
-                $cacheService->incr_count_cust('customers_count');
             }
-        }
 
-        return new JsonResponse(['status' => 'Customers successfully created']);
+            foreach ($customers as $customer) {
+
+                $database->customers->insert($customer);
+    
+                $cacheService = $this->get('cache_service');
+
+                if($cacheService !== null) {
+
+                    if($cacheService->redis !== null){
+                        //save in cache  
+                        $cacheService->set('customer_' . $customer->_id, $customer);
+                        $cacheService->incr_count('customers');
+                    }
+
+                }
+
+            }   
+
+            return new JsonResponse(['status' => 'Customers successfully created'],200);
+
+        }       
+
+        return new JsonResponse(['status' => 'Customers not successfully created'],500);
     }
 
     /**
@@ -84,12 +122,26 @@ class CustomersController extends Controller
     public function deleteAction()
     {
         $database = $this->get('database_service')->getDatabase();
-        $database->customers->drop();
 
-        $cacheService = $this->get('cache_service');
-        if($cacheService->redis !== null)
-            $cacheService->del('customer');
+        if($database !== null){ 
 
-        return new JsonResponse(['status' => 'Customers successfully deleted']);
+            $database->customers->drop();
+            
+            $cacheService = $this->get('cache_service');
+
+            if($cacheService !== null){
+
+                if($cacheService->redis !== null)
+
+                    $cacheService->del('customer');
+
+            }
+
+            return new JsonResponse(['status' => 'Customers successfully deleted'],200);
+
+        }
+
+
+        return new JsonResponse(['status' => 'Customers not successfully deleted'],500);
     }
 }
