@@ -24,6 +24,9 @@ class CustomersControllerTest extends WebTestCase
         $this->assertFalse($this->client->getResponse()->isSuccessful());
     }
 
+    /**
+     * @depends testCreateCustomersEmpty
+     */
     public function testCreateCustomersNull()
     {
         $customers = null;
@@ -34,13 +37,20 @@ class CustomersControllerTest extends WebTestCase
         $this->assertFalse($this->client->getResponse()->isSuccessful());
     }
 
-    public function testGetActionCustomersEmpty() 
+    /**
+     * @depends testCreateCustomersNull
+     */
+    /////////
+    public function testGetActionCustomersNotNull() 
     {
         $this->client->request('GET', '/customers/');
 
-        $this->assertEquals($this->client->getResponse()->getContent(),'[]');
+        $this->assertNotNull($this->client->getResponse()->getContent());
     }
 
+    /**
+     * @depends testGetActionCustomersNotNull
+     */
     public function testCreateCustomers()
     {
         $customers = [
@@ -54,21 +64,26 @@ class CustomersControllerTest extends WebTestCase
 
         $this->assertTrue($this->client->getResponse()->isSuccessful());
     }
-
-    public function testGetActionCustomers() 
+    /**
+     * @depends testCreateCustomers
+     */
+    public function testGetActionCustomersStatusCode() 
     {
         $this->client->request('GET', '/customers/');
 
-        $this->assertNotNull($this->client->getResponse()->getContent());
-        //$this->assertEquals(($this->client->getResponse()->getContent()),'[{"name":"Alex","age":18,"_id":{"$id":"56b915246803fa4f618b4569"}},{"name":"Leandro","age":26,"_id":{"$id":"56b915246803fa4f618b4567"}},{"name":"Marcelo","age":30,"_id":{"$id":"56b915246803fa4f618b4568"}}]');
-        //$this->assertEquals(($this->client->getResponse()->getContent()),'[{"name":"Leandro","age":26,"_id":{"$id":"56b9158e6803fa78618b4567"}},{"name":"Marcelo","age":30,"_id":{"$id":"56b9158e6803fa78618b4568"}},{"name":"Alex","age":18,"_id":{"$id":"56b9158e6803fa78618b4569"}}]');
+        $this->assertEquals($this->client->getResponse()->getStatusCode(),200);
     }
 
+    /**
+     * @depends testGetActionCustomersStatusCode
+     */
     public function testDeleteCustomers()
     {
         
         $this->client->request('DELETE', '/customers/');
 
-        $this->assertTrue($this->client->getResponse()->isSuccessful()); 
+        $this->assertEquals($this->client->getResponse()->getStatusCode(),200); 
+
     }
+
 }

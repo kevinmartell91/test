@@ -29,8 +29,8 @@ class CustomersController extends Controller
                 //get all customer from cacheServer
                 $customers = $cacheService->get('customer_');
 
-                if($customers !== null || empty($customers)){
-                    //echo "left in cache : " . count($customers) . "   ---  totalCount :" .  $cacheService->get_count('customers') ;
+                if($customers !== null || !empty($customers)){
+                    echo "left in cache : " . count($customers) . "   ---  Count :" .  $cacheService->get_count('customers') . "\n";
                     if(count($customers) < $cacheService->get_count('customers')){
                         //force to hit database since cacheServer has different number of customers than stored in database.
                         $customers = null;
@@ -41,7 +41,6 @@ class CustomersController extends Controller
         } 
 
         if ( empty($customers) || $customers === null ){
-            //echo "\n\n =============   retrive data from database    =========== \n\n";
             
             $database = $this->get('database_service')->getDatabase();
 
@@ -49,9 +48,11 @@ class CustomersController extends Controller
 
                 $customers = $database->customers->find();
 
-                if($customers !== null || empty($customers)){
+                if($customers !== null || !empty($customers)){
 
                     $customers = iterator_to_array($customers,true);
+                    
+                    echo "\n\n =============   retrive data from database    =========== \n\n";
                     
                     if($cacheService !== null){
 
@@ -131,9 +132,11 @@ class CustomersController extends Controller
 
             if($cacheService !== null){
 
-                if($cacheService->redis !== null)
+                if($cacheService->redis !== null){ 
 
                     $cacheService->del('customer');
+
+                }
 
             }
 

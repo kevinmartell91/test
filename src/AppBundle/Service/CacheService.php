@@ -28,25 +28,29 @@ class CacheService
 
     public function get($key)
     {
-        //echo "\n\n =============   retrive data from cacheServer    =========== \n\n";
 
-        if($this->redis !== null){
+        if($key !== null && !empty($key) && $this->redis !==null){
+
+            echo "\n\n =============   retrive data from CACHE_SERVER    =========== \n\n";
 
             $data_keys = $this->redis->keys($key . '*');
-            
+
             $arrayData =  array();
-            
-            foreach ($data_keys as $key => $value) {
 
-                $data = unserialize($this->redis->get($value));
+           if($data_keys !== null && !empty($data_keys)){
+
+                foreach ($data_keys as $key => $value) {
+
+                    $data = unserialize($this->redis->get($value));
+                    
+                    if($data !== null &&  !empty($data))
+
+                        array_push($arrayData, $data);
+
+                }   
                 
-                if($data !== null || empty($data))
-
-                    array_push($arrayData, $data);
-
-            }   
-            
-            return $arrayData;
+                return $arrayData;
+           }
 
         }
 
@@ -56,13 +60,17 @@ class CacheService
 
     public function set($key, $value)
     {
-        if( $this->redis !==null){
+        if($key !== null && $value !==null &&
+            !empty($key) && !empty($value)) { 
 
-            $this->redis->set($key,serialize($value));
+             if( $this->redis !==null){
 
-            $this->redis->expire($key,60);
+                $this->redis->set($key,serialize($value));
 
-            return true;
+                $this->redis->expire($key,5);
+
+                return true;
+            }
         }
 
         return false;
@@ -71,11 +79,11 @@ class CacheService
 
     public function del($key)
     {
-        if($this->redis !== null){
+        if($key !== null && !empty($key) && $this->redis !==null){
 
             $data = $this->redis->keys($key . '_*');
             
-            if($data !== null || empty($data) ){
+            if($data !== null && !empty($data) ){
 
                 foreach ($data as $_key => $value) {
 
@@ -83,13 +91,12 @@ class CacheService
 
                 }
 
+                if($this->redis->exists('customers')) 
+
+                    $this->redis->del('customers') ; 
+
+                return true;
             }
-
-            if($this->redis->exists('customers')) 
-
-                $this->redis->del('customers') ; 
-
-            return true;
 
         }
 
@@ -100,7 +107,7 @@ class CacheService
     public function get_count($key)
     {
         
-        if($this->redis !==null){
+        if($key !== null && !empty($key) && $this->redis !==null){
 
             if($this->redis->exists($key)) {
 
@@ -116,7 +123,7 @@ class CacheService
     public function incr_count($key)
     {
 
-        if($this->redis !==null){
+        if($key !== null && !empty($key) && $this->redis !==null){
 
             if($this->redis->exists($key)) {
 
