@@ -29,7 +29,7 @@ class CustomersController extends Controller
                 //get all customer from cacheServer
                 $customers = $cacheService->get('customer_');
 
-                if($customers !== null || !empty($customers)){
+                if($customers !== null && !empty($customers)){
                     echo "left in cache : " . count($customers) . "   ---  Count :" .  $cacheService->get_count('customers') . "\n";
                     if(count($customers) < $cacheService->get_count('customers')){
                         //force to hit database since cacheServer has different number of customers than stored in database.
